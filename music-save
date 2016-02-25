@@ -1,9 +1,9 @@
 #!/bin/bash
 
 SaveDir=`zenity --file-selection --directory --filename="$HOME/music/"`
-Name=`zenity --entry --text="Name"`
 
 if [ -n "$SaveDir" ]; then
+    Name=`zenity --entry --text="Name"`
     cd $SaveDir
     if [ -n "$Name" ]; then
         youtube-dl -x -o "$Name.%(ext)s" --audio-format vorbis $1 | \
