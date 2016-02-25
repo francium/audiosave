@@ -1,11 +1,17 @@
 #!/bin/bash
 
 SaveDir=`zenity --file-selection --directory --filename="$HOME/music/"`
+Name=`zenity --entry --text="Name"`
+
 if [ -n "$SaveDir" ]; then
     cd $SaveDir
-    youtube-dl -x -o "%(title)s.%(ext)s" --audio-format vorbis $1 | \
-        grep  --line-buffered -oP '\[download\].*?\K([0-9.]+\%)' | \
-        zenity --progress --percentage=0
-else
-    #
+    if [ -n "$Name" ]; then
+        youtube-dl -x -o "$Name.%(ext)s" --audio-format vorbis $1 | \
+            grep  --line-buffered -oP '\[download\].*?\K([0-9.]+\%)' | \
+            zenity --progress --percentage=0
+    else
+        youtube-dl -x -o "%(title)s.%(ext)s" --audio-format vorbis $1 | \
+            grep  --line-buffered -oP '\[download\].*?\K([0-9.]+\%)' | \
+            zenity --progress --percentage=0
+    fi
 fi
