@@ -6,12 +6,24 @@ if [ -n "$SaveDir" ]; then
     Name=`zenity --entry --text="Name"`
     cd $SaveDir
     if [ -n "$Name" ]; then
-        youtube-dl -x -o "$Name.%(ext)s" --audio-format vorbis $1 | \
-            grep  --line-buffered -oP '\[download\].*?\K([0-9.]+\%)' | \
-            zenity --progress --percentage=0
+        youtube-dl -x -o "$Name.%(ext)s" --audio-format vorbis $1
+        if [ $? -eq 0 ]; then
+            notify-send "Download finished"
+        else
+            notify-send "Download failed!"
+        fi
+        #youtube-dl -x -o "$Name.%(ext)s" --audio-format vorbis $1 | \
+        #    grep  --line-buffered -oP '\[download\].*?\K([0-9.]+\%)' | \
+        #    zenity --progress --percentage=0
     else
-        youtube-dl -x -o "%(title)s.%(ext)s" --audio-format vorbis $1 | \
-            grep  --line-buffered -oP '\[download\].*?\K([0-9.]+\%)' | \
-            zenity --progress --percentage=0
+        youtube-dl -x -o "%(title)s.%(ext)s" --audio-format vorbis $1
+        if [ $? -eq 0 ]; then
+            notify-send "Download finished"
+        else
+            notify-send "Download failed!"
+        fi
+        #youtube-dl -x -o "%(title)s.%(ext)s" --audio-format vorbis $1 | \
+        #    grep  --line-buffered -oP '\[download\].*?\K([0-9.]+\%)' | \
+        #    zenity --progress --percentage=0
     fi
 fi
