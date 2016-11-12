@@ -1,15 +1,46 @@
 #!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
 
-SaveDir=`zenity --file-selection --directory --filename="$HOME/music/"`
+exists=false
+savefile=~/.audio-save
+getvideoname() {
+    videoname=`function`
+}
 
-if [ -n "$SaveDir" ]; then
+# read previous save location from save file if it exists
+if [ -e $savefile ]; then
+    exists=true
+    read -r loc < $savefile
+    echo $loc !!!!!!!!!!!!!
+else
+    loc=false
+fi
+
+# prompt for save location
+if [ $loc != false ]; then
+    # relative to previous save if possible
+    savedir=`zenity --file-selection --directory --filename=$loc`
+else
+    # relative to HOME
+    savedir=`zenity --file-selection --directory --filename=$HOME/`
+fi
+
+if [ -n "$savedir" ]; then
+    # not null
+    # savedir has been defined
+
     # name prompt
-    # Name=`zenity --entry --text="Name"`
-    cd $SaveDir
-    # name prompt block
-    if [ -n "$Name" ]; then
+    videoname=`youtube-dl -e $1`
+    name=`zenity --entry --text="Name" --entry-text="$videoname"`
+    cd $savedir
+
+    if [ -n "$name" ]; then
+        # if name provided
+        notify-send "Download starting"
+
         # without progress
-        youtube-dl -x -o "$Name.%(ext)s" --audio-format vorbis $1
+        youtube-dl -x -o "$name.%(ext)s" --audio-format vorbis $1
         if [ $? -eq 0 ]; then
             notify-send "Download finished"
         else
@@ -17,10 +48,13 @@ if [ -n "$SaveDir" ]; then
         fi
 
         # with progress
-        # youtube-dl -x -o "$Name.%(ext)s" --audio-format vorbis $1 | \
+        # youtube-dl -x -o "$name.%(ext)s" --audio-format vorbis $1 | \
         #     grep  --line-buffered -oP '\[download\].*?\K([0-9.]+\%)' | \
         #     zenity --progress --percentage=0
     else
+        # if no name provided
+        notify-send "Download starting"
+
         # without progress
         youtube-dl -x -o "%(title)s.%(ext)s" --audio-format vorbis $1
         if [ $? -eq 0 ]; then
@@ -35,3 +69,6 @@ if [ -n "$SaveDir" ]; then
         #     zenity --progress --percentage=0
     fi
 fi
+
+# save location for future
+echo $savedir > $savefile
