@@ -4,9 +4,36 @@ import argparse
 import os
 import youtube_dl
 
+import gi
+gi.require_version('Notify', '0.7')
+from gi.repository import Notify
+from gi.repository import GdkPixbuf
 
-def cd_to_save_dir(dir):
-    os.chdir(dir)
+
+APP_NAME = 'audiosave'
+
+if os.path.isfile('/usr/share/icons/gnome/32x32/mimetypes/audio-x-generic.png'):
+    ICON_SUCCESS = '/usr/share/icons/gnome/32x32/mimetypes/audio-x-generic.png'
+else:
+    ICON_SUCCESS = None
+
+if os.path.isfile('/usr/share/icons/gnome/32x32/status/error.png'):
+    ICON_FAILURE = '/usr/share/icons/gnome/32x32/status/error.png'
+else:
+    ICON_FAILURE = None
+
+
+def notify(title, body=None, icon=None):
+    Notify.init(APP_NAME)
+    notification = Notify.Notification.new(title, body)
+
+    if icon:
+        image = GdkPixbuf.Pixbuf.new_from_file(icon)
+        notification.set_icon_from_pixbuf(image)
+        notification.set_image_from_pixbuf(image)
+
+    notification.show()
+    Notify.uninit()
 
 
 def download(url, codec, bitrate, quiet=True):
@@ -22,8 +49,8 @@ def download(url, codec, bitrate, quiet=True):
     }
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        status = ydl.download([url])
-
+        info = ydl.extract_info(url, download=False)
+        return {'status': ydl.download([url]), 'info': info}
 
 
 def main():
@@ -37,10 +64,17 @@ def main():
     args = arg_parser.parse_args()
 
     if args.dir:
-        cd_to_save_dir(args.dir)
+        os.chdir(args.dir)
 
-    download(args.url, codec=args.codec, bitrate=args.bitrate,
+    result = download(args.url, codec=args.codec, bitrate=args.bitrate,
              quiet=not(args.verbose))
+    status = result['status']
+    title = result['info'].get('title', None)
+
+    if status == 0:
+        notify('Downloaded \'{}\''.format(title), icon=ICON_SUCCESS)
+    else:
+        notify('Download failed for \'{}\''.format(title), icon=ICON_FAILURE)
 
 
 if __name__ == '__main__':
