@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import youtube_dl
+
+
+def cd_to_save_dir(dir):
+    os.chdir(dir)
+
+
+def download(url, codec, bitrate, quiet=True):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': codec,
+            'preferredquality': bitrate,
+        }],
+        'outtmpl': '%(title)s.%(etx)s',
+        'quiet': quiet
+    }
+
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        status = ydl.download([url])
+
+
+
+def main():
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('url', help='URL')
+    arg_parser.add_argument('--codec', default='vorbis', help='Audio codec')
+    arg_parser.add_argument('--bitrate', default=192, help='Bitrate')
+    arg_parser.add_argument('-d', '--dir', help='Save directory')
+    arg_parser.add_argument('-v', '--verbose', action='store_true',
+                            help='Show all output')
+    args = arg_parser.parse_args()
+
+    if args.dir:
+        cd_to_save_dir(args.dir)
+
+    download(args.url, codec=args.codec, bitrate=args.bitrate,
+             quiet=not(args.verbose))
+
+
+if __name__ == '__main__':
+    main()
