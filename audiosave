@@ -76,6 +76,8 @@ def download(url, codec, bitrate, quiet=True):
                 overwrite = True
             else:
                 overwrite = False
+        else:
+            overwrite = True
 
         if overwrite:
             # youtube-dl doesn't seem to raise exceptions (further testing
