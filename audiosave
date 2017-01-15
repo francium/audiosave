@@ -52,7 +52,14 @@ def download(url, codec, bitrate, quiet=True):
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-        status = ydl.download([url])
+
+        # youtube-dl doesn't seem to raise exceptions (further testing is
+        # needed)
+        try:
+            status = ydl.download([url])
+        except:
+            status = -1
+
         return {'status': status, 'info': info}
 
 
@@ -71,18 +78,14 @@ def main():
 
     result = download(args.url, codec=args.codec, bitrate=args.bitrate,
              quiet=not(args.verbose))
-    try:
-        status = result['status']
-        title = result['info'].get('title', None)
-    except Exception as e:
-        if args.verbose:
-            print(e)
-        status = -1
+    status = result['status']
+    title = result['info'].get('title', None)
 
     if status == 0:
         notify('Downloaded \'{}\''.format(title), icon=ICON_SUCCESS)
     else:
-        notify('Download failed for \'{}\''.format(title), icon=ICON_FAILURE)
+        notify('Download failed for \'{}\''.format(title),
+               'Error {}'.format(status), icon=ICON_FAILURE)
 
 
 if __name__ == '__main__':
