@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
+# Error Codes:
+#   0       Success
+#   -1      youtube_dl error
+#   -2      file_exists_ no_overwrite
+
+
 import argparse
 import os
 import youtube_dl
 
-import gi
-gi.require_version('Notify', '0.7')
-from gi.repository import Notify
-from gi.repository import GdkPixbuf
-
+import utils_input
 
 APP_NAME = 'audiosave'
+OUTPUT_EXT = '.ogg'
 
 if os.path.isfile('/usr/share/icons/gnome/32x32/mimetypes/audio-x-generic.png'):
     ICON_SUCCESS = '/usr/share/icons/gnome/32x32/mimetypes/audio-x-generic.png'
@@ -24,6 +27,14 @@ else:
 
 
 def notify(title, body=None, icon=None):
+    try:
+        import gi
+        gi.require_version('Notify', '0.7')
+        from gi.repository import Notify
+        from gi.repository import GdkPixbuf
+    except:
+        return
+
     Notify.init(APP_NAME)
     notification = Notify.Notification.new(title, body)
 
@@ -36,13 +47,20 @@ def notify(title, body=None, icon=None):
     Notify.uninit()
 
 
+def check_file_exists(file_path):
+    if os.path.isfile(file_path):
+        return True
+    else:
+        return False
+
+
 def download(url, codec, bitrate, quiet=True):
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': codec,
-            'preferredquality': bitrate,
+            'preferredquality': str(bitrate),
         }],
         'outtmpl': '%(title)s.%(etx)s',
         'quiet': quiet
@@ -50,7 +68,28 @@ def download(url, codec, bitrate, quiet=True):
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-        return {'status': ydl.download([url]), 'info': info}
+
+        title = info.get('title', None)
+        if check_file_exists(title + OUTPUT_EXT):
+            if utils_input.yesno('{} already exists, overwrite it? (y/n)'
+                                 .format(title)):
+                overwrite = True
+            else:
+                overwrite = False
+        else:
+            overwrite = True
+
+        if overwrite:
+            # youtube-dl doesn't seem to raise exceptions (further testing
+            # is needed)
+            try:
+                status = ydl.download([url])
+            except:
+                status = -1
+
+            return {'status': status, 'info': info}
+        else:
+            return {'status': -2}
 
 
 def main():
@@ -69,12 +108,18 @@ def main():
     result = download(args.url, codec=args.codec, bitrate=args.bitrate,
              quiet=not(args.verbose))
     status = result['status']
-    title = result['info'].get('title', None)
+    if status != -2:
+        title = result['info'].get('title', None)
 
     if status == 0:
         notify('Downloaded \'{}\''.format(title), icon=ICON_SUCCESS)
+        return 0
+    if status == -2:
+        return 0
     else:
-        notify('Download failed for \'{}\''.format(title), icon=ICON_FAILURE)
+        notify('Download failed for "{}"'.format(title),
+               'Error {}'.format(status), icon=ICON_FAILURE)
+        return status
 
 
 if __name__ == '__main__':
