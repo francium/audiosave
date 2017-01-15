@@ -4,12 +4,6 @@ import argparse
 import os
 import youtube_dl
 
-import gi
-gi.require_version('Notify', '0.7')
-from gi.repository import Notify
-from gi.repository import GdkPixbuf
-
-
 APP_NAME = 'audiosave'
 
 if os.path.isfile('/usr/share/icons/gnome/32x32/mimetypes/audio-x-generic.png'):
@@ -24,6 +18,14 @@ else:
 
 
 def notify(title, body=None, icon=None):
+    try:
+        import gi
+        gi.require_version('Notify', '0.7')
+        from gi.repository import Notify
+        from gi.repository import GdkPixbuf
+    except:
+        return
+
     Notify.init(APP_NAME)
     notification = Notify.Notification.new(title, body)
 
@@ -42,7 +44,7 @@ def download(url, codec, bitrate, quiet=True):
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': codec,
-            'preferredquality': bitrate,
+            'preferredquality': str(bitrate),
         }],
         'outtmpl': '%(title)s.%(etx)s',
         'quiet': quiet
@@ -50,7 +52,8 @@ def download(url, codec, bitrate, quiet=True):
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-        return {'status': ydl.download([url]), 'info': info}
+        status = ydl.download([url])
+        return {'status': status, 'info': info}
 
 
 def main():
@@ -68,8 +71,13 @@ def main():
 
     result = download(args.url, codec=args.codec, bitrate=args.bitrate,
              quiet=not(args.verbose))
-    status = result['status']
-    title = result['info'].get('title', None)
+    try:
+        status = result['status']
+        title = result['info'].get('title', None)
+    except Exception as e:
+        if args.verbose:
+            print(e)
+        status = -1
 
     if status == 0:
         notify('Downloaded \'{}\''.format(title), icon=ICON_SUCCESS)
