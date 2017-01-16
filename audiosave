@@ -26,6 +26,21 @@ else:
     ICON_FAILURE = None
 
 
+def coloredText(message, type):
+    try:
+        from termcolor import colored
+    except ModuleNotFoundError:
+        # TODO Manually construct message with ANSI/VT100 CODES
+        return message
+
+    if type == 'success':
+        return colored(message, 'green')
+    elif type == 'error':
+        return colored(message, 'red')
+    else:
+        return message
+
+
 def notify(title, body=None, icon=None):
     try:
         import gi
@@ -112,13 +127,18 @@ def main():
         title = result['info'].get('title', None)
 
     if status == 0:
-        notify('Downloaded \'{}\''.format(title), icon=ICON_SUCCESS)
+        message = coloredText('Downloaded \'{}\''.format(title), 'success')
+        print(message)
+        notify(message, icon=ICON_SUCCESS)
         return 0
     if status == -2:
         return 0
     else:
-        notify('Download failed for "{}"'.format(title),
-               'Error {}'.format(status), icon=ICON_FAILURE)
+        message = coloredText('Download failed for "{}"'.format(title), 'error')
+        body = 'Error {}'.format(status)
+        print(message)
+        print(body)
+        notify(message, body, icon=ICON_FAILURE)
         return status
 
 
