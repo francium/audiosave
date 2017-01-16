@@ -10,7 +10,7 @@ import argparse
 import os
 import youtube_dl
 
-import utils_input
+import utils
 
 APP_NAME = 'audiosave'
 OUTPUT_EXT = '.ogg'
@@ -86,7 +86,7 @@ def download(url, codec, bitrate, quiet=True):
 
         title = info.get('title', None)
         if check_file_exists(title + OUTPUT_EXT):
-            if utils_input.yesno('{} already exists, overwrite it? (y/n)'
+            if utils.yesno('{} already exists, overwrite it? (y/n)'
                                  .format(title)):
                 overwrite = True
             else:
@@ -115,6 +115,9 @@ def main():
     arg_parser.add_argument('-d', '--dir', help='Save directory')
     arg_parser.add_argument('-v', '--verbose', action='store_true',
                             help='Show all output')
+    arg_parser.add_argument('-V', '--notify', action='store_true',
+                            help='Show notification (warning: shows Warning'
+                                 ' message)')
     args = arg_parser.parse_args()
 
     if args.dir:
@@ -129,7 +132,8 @@ def main():
     if status == 0:
         message = coloredText('Downloaded \'{}\''.format(title), 'success')
         print(message)
-        notify(message, icon=ICON_SUCCESS)
+        if args.notify:
+            notify(message, icon=ICON_SUCCESS)
         return 0
     if status == -2:
         return 0
@@ -138,7 +142,8 @@ def main():
         body = 'Error {}'.format(status)
         print(message)
         print(body)
-        notify(message, body, icon=ICON_FAILURE)
+        if args.notify:
+            notify(message, body, icon=ICON_FAILURE)
         return status
 
 
