@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>audiosave</title>
+  <style>
+    .content {
+      margin: 0 auto;
+      width: 512px;
+    }
+
+    #header {
+      font-weight: 600;
+      text-align: center;
+    }
+
+    #container-url, #container-options {
+      padding: 0.5em;
+
+      width: 100%;
+
+      text-align: center;
+    }
+
+    input {
+      border: none;
+      background: lightgray;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="content">
+
+    <div id="header">
+      hello world
+    </div>
+
+    <div id="container-url">
+      <input id="tbUrl" type="text" placeholder=" youtube url... " /input>
+      <div id="url-drop-label"><!-- Drop url here (click for input box) --></div>
+    </div>
+
+    <div id="container-options">
+      <input id="tbSavePath" type="text" placeholder=" save to... " /input>
+      <input id="btSavePath" type="file" webkitdirectory style="display: none" /input>
+      <input id="btPseudoSavePath"type="button" value="save to..."/input>
+      <input id="btSubmit" type="submit"></input>
+    </div>
+
+  </div>
+</body>
+
+<script>
+  require("./renderer.js")
+</script>
+
+</html>
