@@ -22,4 +22,6 @@ def call(args):
     if 'url' in keys:
         sys.argv.append(args['url'])
 
-    audiosave.main()
+    rc = audiosave.main()
+    print('done with code', rc, 'but returning 42')
+    return 42
