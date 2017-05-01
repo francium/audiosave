@@ -13,7 +13,10 @@ import youtube_dl
 import utils
 
 APP_NAME = 'audiosave'
-OUTPUT_EXT = '.ogg'
+OUTPUT_EXT = {
+                'vorbis': '.ogg',
+                'mp3': '.mp3'
+             }
 
 if os.path.isfile('/usr/share/icons/gnome/32x32/mimetypes/audio-x-generic.png'):
     ICON_SUCCESS = '/usr/share/icons/gnome/32x32/mimetypes/audio-x-generic.png'
@@ -85,7 +88,7 @@ def download(url, codec, bitrate, quiet=True):
         info = ydl.extract_info(url, download=False)
 
         title = info.get('title', None)
-        if check_file_exists(title + OUTPUT_EXT):
+        if check_file_exists(title + OUTPUT_EXT[codec]):
             if utils.yesno('{} already exists, overwrite it? (y/n)'
                                  .format(title)):
                 overwrite = True
@@ -110,7 +113,8 @@ def download(url, codec, bitrate, quiet=True):
 def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('url', help='URL')
-    arg_parser.add_argument('--codec', default='vorbis', help='Audio codec')
+    arg_parser.add_argument('--codec', default='mp3',
+            help='Audio codec (see youtube-dl supported codecs)')
     arg_parser.add_argument('--bitrate', default=192, help='Bitrate')
     arg_parser.add_argument('-d', '--dir', help='Save directory')
     arg_parser.add_argument('-v', '--verbose', action='store_true',
