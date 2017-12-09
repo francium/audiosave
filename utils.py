@@ -1,6 +1,6 @@
-def yesno(message):
-    choice = None
-    while choice != 'y' and choice !='n':
-        choice = input(message + ' ')
+def yesno(msg: str) -> bool:
+    choice = ''
+    while choice.lower() not in ['y', 'n', 'yes', 'no']:
+        choice = input(msg.strip() + ' ')
 
-    return True if choice == 'y' else False
+    return True if choice[0].lower() == 'y' else False

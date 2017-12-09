@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
-# Error Codes:
-#   0       Success
-#   -1      youtube_dl error
-#   -2      file_exists_ no_overwrite
+
+"""
+Error Codes:
+  0       Success
+  -1      youtube_dl error
+  -2      file_exists_ no_overwrite
+"""
 
 
 import argparse
@@ -12,11 +15,12 @@ import youtube_dl
 
 import utils
 
+
 APP_NAME = 'audiosave'
 OUTPUT_EXT = {
-                'vorbis': '.ogg',
-                'mp3': '.mp3'
-             }
+    'vorbis': '.ogg',
+    'mp3': '.mp3'
+}
 
 if os.path.isfile('/usr/share/icons/gnome/32x32/mimetypes/audio-x-generic.png'):
     ICON_SUCCESS = '/usr/share/icons/gnome/32x32/mimetypes/audio-x-generic.png'
@@ -29,7 +33,7 @@ else:
     ICON_FAILURE = None
 
 
-def coloredText(message, type):
+def coloredText(message: str, type: str) -> str:
     try:
         from termcolor import colored
     except ModuleNotFoundError:
@@ -37,9 +41,9 @@ def coloredText(message, type):
         return message
 
     if type == 'success':
-        return colored(message, 'green')
+        return colored(message, 'green')  # type: str
     elif type == 'error':
-        return colored(message, 'red')
+        return colored(message, 'red')  # type: str
     else:
         return message
 
@@ -51,7 +55,7 @@ def notify(title, body=None, icon=None):
         from gi.repository import Notify
         from gi.repository import GdkPixbuf
     except:
-        return
+        pass
 
     Notify.init(APP_NAME)
     notification = Notify.Notification.new(title, body)
@@ -65,14 +69,19 @@ def notify(title, body=None, icon=None):
     Notify.uninit()
 
 
-def check_file_exists(file_path):
-    if os.path.isfile(file_path):
-        return True
-    else:
-        return False
+def create_dir(dir_path: str) -> None:
+    os.makedirs(dir_path)
 
 
-def download(url, codec, bitrate, quiet=True):
+def check_dir_exists(dir_path: str) -> bool:
+    return os.path.isdir(dir_path)
+
+
+def check_file_exists(file_path: str) -> bool:
+    return os.path.isfile(file_path)
+
+
+def download(url: str, codec: str, bitrate: int, title: str = None, quiet: bool = True):
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{
@@ -87,10 +96,11 @@ def download(url, codec, bitrate, quiet=True):
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-        title = info.get('title', None)
+        title = title if title else info.get('title', None)
+
         if check_file_exists(title + OUTPUT_EXT[codec]):
             if utils.yesno('{} already exists, overwrite it? (y/n)'
-                                 .format(title)):
+                           .format(title)):
                 overwrite = True
             else:
                 overwrite = False
@@ -110,43 +120,70 @@ def download(url, codec, bitrate, quiet=True):
             return {'status': -2}
 
 
-def main():
+def parse_args():
     arg_parser = argparse.ArgumentParser()
+
     arg_parser.add_argument('url', help='URL')
-    arg_parser.add_argument('--codec', default='mp3',
-            help='Audio codec (see youtube-dl supported codecs)')
-    arg_parser.add_argument('--bitrate', default=192, help='Bitrate')
+
+    # Primary
     arg_parser.add_argument('-d', '--dir', help='Save directory')
-    arg_parser.add_argument('-v', '--verbose', action='store_true',
-                            help='Show all output')
-    arg_parser.add_argument('-V', '--notify', action='store_true',
+    arg_parser.add_argument('-t', '--title',
+                            help='Override filename (default\'s to video title)')
+
+    # Media
+    arg_parser.add_argument('--bitrate', default=192, help='Bitrate')
+    arg_parser.add_argument('--codec', default='mp3',
+                            help='Audio codec (see youtube-dl supported codecs)')
+
+    # Extra
+    arg_parser.add_argument('--notify', action='store_true',
                             help='Show notification (warning: shows Warning'
                                  ' message)')
-    args = arg_parser.parse_args()
+    arg_parser.add_argument('-v', '--verbose', action='store_true',
+                            help='Show all output')
+    return arg_parser.parse_args()
 
-    if args.dir:
-        os.chdir(args.dir)
 
-    result = download(args.url, codec=args.codec, bitrate=args.bitrate,
-             quiet=not(args.verbose))
+def handle_download(result, notify: bool = True) -> None:
     status = result['status']
     if status != -2:
         title = result['info'].get('title', None)
+        msg = 'Downloaded \'{}\''.format(title)
+    else:
+        msg = 'Unknown error'
 
     if status == 0:
-        msg = 'Downloaded \'{}\''.format(title)
         print(coloredText(msg, 'success'))
-        if args.notify: notify(msg, icon=ICON_SUCCESS)
+        if notify:
+            notify(msg, icon=ICON_SUCCESS)
         return 0
     if status == -2:
         return 0
     else:
         msg_title = 'Download failed for "{}"'.format(title)
         msg_body = 'Error {}'.format(status)
-        print(coloredText(msg, 'error'))
-        print(body)
-        if args.notify: notify(msg, body, icon=ICON_FAILURE)
+        print(coloredText(msg_title, 'error'))
+        print(msg_body)
+
+        if notify:
+            notify(msg_title, msg_body, icon=ICON_FAILURE)
+
         return status
+
+
+def main():
+    args = parse_args()
+
+    if args.dir:
+        if not check_dir_exists(args.dir):
+            if utils.yesno(f'{args.dir} does not exist. Create it?'):
+                create_dir(args.dir)
+        os.chdir(args.dir)
+
+    print(args.title)
+    result = download(args.url, codec=args.codec, bitrate=args.bitrate,
+                      title=args.title, quiet=not(args.verbose))
+    handle_download(result, args.notify)
 
 
 if __name__ == '__main__':
