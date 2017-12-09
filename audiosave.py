@@ -73,6 +73,9 @@ def create_dir(dir_path: str) -> None:
     os.makedirs(dir_path)
 
 
+def move_file(from_, to):
+    os.rename(from_, to)
+
 def check_dir_exists(dir_path: str) -> bool:
     return os.path.isdir(dir_path)
 
@@ -96,8 +99,6 @@ def download(url: str, codec: str, bitrate: int, title: str = None, quiet: bool 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-        title = title if title else info.get('title', None)
-
         if check_file_exists(title + OUTPUT_EXT[codec]):
             if utils.yesno('{} already exists, overwrite it? (y/n)'
                            .format(title)):
@@ -115,6 +116,8 @@ def download(url: str, codec: str, bitrate: int, title: str = None, quiet: bool 
             except:
                 status = -1
 
+            move_file(info.get('title', None) + OUTPUT_EXT[codec],
+                      title + OUTPUT_EXT[codec])
             return {'status': status, 'info': info}
         else:
             return {'status': -2}
