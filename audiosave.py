@@ -13,8 +13,6 @@ import argparse
 import os
 import youtube_dl
 
-import utils
-
 
 APP_NAME = 'audiosave'
 OUTPUT_EXT = {
@@ -31,6 +29,14 @@ if os.path.isfile('/usr/share/icons/gnome/32x32/status/error.png'):
     ICON_FAILURE = '/usr/share/icons/gnome/32x32/status/error.png'
 else:
     ICON_FAILURE = None
+
+
+def yesno(msg: str) -> bool:
+    choice = ''
+    while choice.lower() not in ['y', 'n', 'yes', 'no']:
+        choice = input(msg.strip() + ' ')
+
+    return True if choice[0].lower() == 'y' else False
 
 
 def coloredText(message: str, type: str) -> str:
@@ -84,7 +90,7 @@ def check_file_exists(file_path: str) -> bool:
     return os.path.isfile(file_path)
 
 
-def download(url: str, codec: str, bitrate: int, title: str = None, quiet: bool = True):
+def download(url: str, codec: str, bitrate: int, title: str = None, quiet: bool = True, force: bool = False):
     ydl_opts = {
         'format': 'bestaudio/best',
         'postprocessors': [{
@@ -98,10 +104,11 @@ def download(url: str, codec: str, bitrate: int, title: str = None, quiet: bool 
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
+        if title is None:
+            title = info['title']
 
-        if check_file_exists(title + OUTPUT_EXT[codec]):
-            if utils.yesno('{} already exists, overwrite it? (y/n)'
-                           .format(title)):
+        if check_file_exists(title + OUTPUT_EXT[codec]) and not force:
+            if yesno('"{}{}" already exists, overwrite it? (y/n)'.format(title, OUTPUT_EXT[codec])):
                 overwrite = True
             else:
                 overwrite = False
@@ -112,6 +119,7 @@ def download(url: str, codec: str, bitrate: int, title: str = None, quiet: bool 
             # youtube-dl doesn't seem to raise exceptions (further testing
             # is needed)
             try:
+                print("Downloading...")
                 status = ydl.download([url])
             except:
                 status = -1
@@ -131,7 +139,7 @@ def parse_args():
     # Primary
     arg_parser.add_argument('-d', '--dir', help='Save directory')
     arg_parser.add_argument('-t', '--title',
-                            help='Override filename (default\'s to video title)')
+                            help='Override filename (minus extension) (default\'s to video title)')
 
     # Media
     arg_parser.add_argument('--bitrate', default=192, help='Bitrate')
@@ -139,36 +147,37 @@ def parse_args():
                             help='Audio codec (see youtube-dl supported codecs)')
 
     # Extra
+    arg_parser.add_argument('-f', '--force', action='store_true',
+                            help='Overwrite existing')
     arg_parser.add_argument('--notify', action='store_true',
-                            help='Show notification (warning: shows Warning'
-                                 ' message)')
+                            help='Show notification')
     arg_parser.add_argument('-v', '--verbose', action='store_true',
                             help='Show all output')
     return arg_parser.parse_args()
 
 
-def handle_download(result, notify: bool = True) -> None:
+def handle_download(result, codec: str, show_notif: bool = True) -> None:
     status = result['status']
     if status != -2:
         title = result['info'].get('title', None)
-        msg = 'Downloaded \'{}\''.format(title)
+        msg = 'Downloaded "{}{}"'.format(title, OUTPUT_EXT[codec])
     else:
         msg = 'Unknown error'
 
     if status == 0:
         print(coloredText(msg, 'success'))
-        if notify:
+        if show_notif:
             notify(msg, icon=ICON_SUCCESS)
         return 0
     if status == -2:
         return 0
     else:
-        msg_title = 'Download failed for "{}"'.format(title)
+        msg_title = 'Download failed for "{}{}"'.format(title, OUTPUT_EXT[codec])
         msg_body = 'Error {}'.format(status)
         print(coloredText(msg_title, 'error'))
         print(msg_body)
 
-        if notify:
+        if show_notif:
             notify(msg_title, msg_body, icon=ICON_FAILURE)
 
         return status
@@ -179,15 +188,17 @@ def main():
 
     if args.dir:
         if not check_dir_exists(args.dir):
-            if utils.yesno(f'{args.dir} does not exist. Create it?'):
+            if yesno(f'{args.dir} does not exist. Create it?'):
                 create_dir(args.dir)
         os.chdir(args.dir)
 
-    print(args.title)
     result = download(args.url, codec=args.codec, bitrate=args.bitrate,
-                      title=args.title, quiet=not(args.verbose))
-    handle_download(result, args.notify)
+                      title=args.title, quiet=not(args.verbose), force=args.force)
+    handle_download(result, args.codec, args.notify)
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
